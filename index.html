@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>健康记录本 · 血压血糖体重</title>
+<meta name="theme-color" content="#b2543a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="app-header no-print">
+  <h1>🩺 健康记录本</h1>
+  <p class="app-sub">每天记一记，健康看得见</p>
+</header>
+
+<nav class="tabs no-print" role="tablist">
+  <button class="tab-btn active" data-tab="record">✏️ 记录</button>
+  <button class="tab-btn" data-tab="history">📋 历史</button>
+  <button class="tab-btn" data-tab="chart">📈 趋势</button>
+  <button class="tab-btn" data-tab="print">🖨️ 打印</button>
+  <button class="tab-btn" data-tab="profile">👤 我的</button>
+</nav>
+
+<div id="reminder-banner" class="reminder-banner no-print" hidden></div>
+
+<main>
+
+<!-- ============ 记录页 ============ -->
+<section id="tab-record" class="tab-page active no-print">
+  <form id="record-form" autocomplete="off">
+    <div class="field-row">
+      <div class="field">
+        <label for="f-date">日期</label>
+        <input type="date" id="f-date" required>
+      </div>
+      <div class="field">
+        <label for="f-period">时段</label>
+        <select id="f-period">
+          <option value="早上">早上</option>
+          <option value="中午">中午</option>
+          <option value="晚上">晚上</option>
+        </select>
+      </div>
+    </div>
+
+    <fieldset class="metric-box bp-box">
+      <legend>血压（毫米汞柱 mmHg）</legend>
+      <div class="field-row">
+        <div class="field">
+          <label for="f-sys">高压（收缩压）</label>
+          <input type="number" id="f-sys" min="50" max="300" inputmode="numeric" placeholder="如 128">
+        </div>
+        <div class="field">
+          <label for="f-dia">低压（舒张压）</label>
+          <input type="number" id="f-dia" min="30" max="200" inputmode="numeric" placeholder="如 82">
+        </div>
+        <div class="field">
+          <label for="f-pulse">心率（次/分）</label>
+          <input type="number" id="f-pulse" min="30" max="220" inputmode="numeric" placeholder="如 72">
+        </div>
+      </div>
+      <p id="bp-hint" class="bp-hint" hidden></p>
+    </fieldset>
+
+    <fieldset class="metric-box">
+      <legend>血糖 · 体重（可不填）</legend>
+      <div class="field-row">
+        <div class="field">
+          <label for="f-glucose">血糖（mmol/L）</label>
+          <input type="number" id="f-glucose" min="1" max="40" step="0.1" inputmode="decimal" placeholder="如 5.6">
+        </div>
+        <div class="field">
+          <label for="f-glucose-type">血糖类型</label>
+          <select id="f-glucose-type">
+            <option value="空腹">空腹</option>
+            <option value="餐后">餐后2小时</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="f-weight">体重（公斤）</label>
+          <input type="number" id="f-weight" min="20" max="250" step="0.1" inputmode="decimal" placeholder="如 62.5">
+        </div>
+      </div>
+      <p id="glucose-hint" class="bp-hint" hidden></p>
+    </fieldset>
+
+    <div class="field">
+      <label for="f-note">备注（可不填）</label>
+      <input type="text" id="f-note" maxlength="50" placeholder="如：今天散步半小时">
+    </div>
+
+    <button type="submit" class="big-btn save-btn">✅ 保存这条记录</button>
+    <p id="save-msg" class="save-msg" hidden>已保存！</p>
+  </form>
+</section>
+
+<!-- ============ 历史页 ============ -->
+<section id="tab-history" class="tab-page no-print">
+  <div class="toolbar">
+    <label for="history-range">查看范围：</label>
+    <select id="history-range">
+      <option value="7">最近 7 天</option>
+      <option value="30" selected>最近 30 天</option>
+      <option value="90">最近 90 天</option>
+      <option value="0">全部</option>
+    </select>
+  </div>
+  <div id="history-list"></div>
+</section>
+
+<!-- ============ 趋势页 ============ -->
+<section id="tab-chart" class="tab-page no-print">
+  <div class="toolbar">
+    <label for="chart-range">时间范围：</label>
+    <select id="chart-range">
+      <option value="7">最近 7 天</option>
+      <option value="30" selected>最近 30 天</option>
+      <option value="90">最近 90 天</option>
+    </select>
+  </div>
+  <div class="chart-card">
+    <h2>血压趋势</h2>
+    <div class="legend">
+      <span class="lg lg-sys">— 高压</span>
+      <span class="lg lg-dia">— 低压</span>
+      <span class="lg lg-ref">┄ 140/90 警戒线</span>
+    </div>
+    <div id="bp-chart" class="chart-holder"></div>
+  </div>
+  <div class="chart-card">
+    <h2>体重趋势</h2>
+    <div id="weight-chart" class="chart-holder"></div>
+  </div>
+</section>
+
+<!-- ============ 打印页 ============ -->
+<section id="tab-print" class="tab-page no-print">
+  <div class="print-option-card">
+    <h2>📄 打印健康记录表</h2>
+    <p>把最近的记录打印成表格，看病时带给医生。</p>
+    <div class="toolbar">
+      <label for="print-range">打印范围：</label>
+      <select id="print-range">
+        <option value="7">最近 7 天</option>
+        <option value="30" selected>最近 30 天</option>
+        <option value="90">最近 90 天</option>
+        <option value="0">全部</option>
+      </select>
+    </div>
+    <button class="big-btn" id="btn-print-history">🖨️ 打印记录表</button>
+  </div>
+
+  <div class="print-option-card">
+    <h2>📝 打印空白记录模板</h2>
+    <p>打印一张空白表格，贴在墙上或放在桌上，用笔手写记录。</p>
+    <div class="toolbar">
+      <label for="blank-weeks">打印张数：</label>
+      <select id="blank-weeks">
+        <option value="1">1 周（1 页）</option>
+        <option value="2">2 周（2 页）</option>
+        <option value="4">4 周（4 页）</option>
+      </select>
+    </div>
+    <button class="big-btn" id="btn-print-blank">🖨️ 打印空白模板</button>
+  </div>
+
+  <div class="print-option-card">
+    <h2>💾 数据备份</h2>
+    <p>把数据导出成表格文件（CSV），可以用 Excel 打开，也可以在换手机/电脑后导入恢复。</p>
+    <button class="big-btn secondary" id="btn-export">⬇️ 导出数据（CSV）</button>
+    <button class="big-btn secondary" id="btn-import">⬆️ 导入数据（CSV）</button>
+    <input type="file" id="import-file" accept=".csv" hidden>
+  </div>
+</section>
+
+<!-- ============ 我的（个人信息） ============ -->
+<section id="tab-profile" class="tab-page no-print">
+  <form id="profile-form" class="profile-form" autocomplete="off">
+    <h2 class="profile-title">👤 个人信息</h2>
+    <p class="profile-tip">填写后，血压等指标会按您的年龄给出更合适的评判；姓名会印在打印表格上。</p>
+    <div class="field-row">
+      <div class="field">
+        <label for="p-name">姓名（可不填）</label>
+        <input type="text" id="p-name" maxlength="20" placeholder="如：王秀兰">
+      </div>
+      <div class="field">
+        <label for="p-birth">出生年份</label>
+        <input type="number" id="p-birth" min="1900" max="2026" inputmode="numeric" placeholder="如 1950">
+      </div>
+      <div class="field">
+        <label for="p-height">身高（厘米，可不填）</label>
+        <input type="number" id="p-height" min="80" max="230" inputmode="numeric" placeholder="如 165">
+      </div>
+    </div>
+    <p id="profile-age" class="profile-age" hidden></p>
+    <button type="submit" class="big-btn">✅ 保存个人信息</button>
+    <p id="profile-msg" class="save-msg" hidden>已保存！</p>
+  </form>
+
+  <div class="print-option-card" id="reminder-card">
+    <h2>⏰ 测量提醒</h2>
+    <p class="profile-tip">开启后，早晚到点还没记录时会提醒您。应用打开着（或挂在后台）才能弹出通知；建议同时用手机闹钟做双保险。</p>
+    <label class="switch-row">
+      <input type="checkbox" id="r-enabled">
+      <span>开启每日提醒</span>
+    </label>
+    <div class="field-row">
+      <div class="field">
+        <label for="r-morning">早上提醒时间</label>
+        <input type="time" id="r-morning" value="07:00">
+      </div>
+      <div class="field">
+        <label for="r-evening">晚上提醒时间</label>
+        <input type="time" id="r-evening" value="19:00">
+      </div>
+    </div>
+    <button type="button" class="big-btn secondary" id="r-test">🔔 试一下通知</button>
+    <p id="r-status" class="profile-tip" style="margin-top:10px"></p>
+  </div>
+
+  <div class="print-option-card standard-card">
+    <h2>📖 评判标准说明</h2>
+    <ul class="standard-list">
+      <li><b>血压</b>：正常 &lt;120/80；正常高值 120–139/80–89；高血压 ≥140/90。<br>80 岁及以上老人控制目标放宽到 150/90 以内。</li>
+      <li><b>心率</b>：正常 60–100 次/分。</li>
+      <li><b>血糖</b>：空腹 3.9–6.1 正常，≥7.0 达糖尿病标准；餐后2小时 &lt;7.8 正常，≥11.1 达糖尿病标准（mmol/L）。</li>
+      <li><b>体重</b>：填写身高后按 BMI 评判，正常 18.5–24（BMI=体重÷身高²）。</li>
+    </ul>
+    <p class="profile-tip">以上参考国内常用指南，仅供日常参考，具体请遵医嘱。</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="app-footer no-print">
+  <p>数据只保存在本机，不会上传。血压分级参考《中国高血压防治指南》，仅供参考，请遵医嘱。</p>
+</footer>
+
+<!-- ============ 打印专用区域（平时隐藏） ============ -->
+<div id="print-area" class="print-only"></div>
+
+<script src="js/app.js"></script>
+<script src="js/reminder.js"></script>
+<script>
+/* 通过 http/https 访问时注册 Service Worker，实现离线使用（file:// 打开则跳过） */
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  navigator.serviceWorker.register("sw.js").catch(err => console.warn("SW 注册失败", err));
+}
+</script>
+</body>
+</html>
