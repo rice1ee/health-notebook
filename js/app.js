@@ -540,6 +540,55 @@ document.getElementById("import-file").addEventListener("change", e => {
   });
 })();
 
+/* ============ 首次使用引导 ============ */
+const ONBOARDED_KEY = "health_onboarded_v1";
+
+(function initOnboarding() {
+  const overlay = document.getElementById("onboarding");
+  const profile = loadProfile();
+  /* 已填过出生年份、或明确跳过过，就不再打扰 */
+  if (profile.birthYear || localStorage.getItem(ONBOARDED_KEY)) return;
+  overlay.hidden = false;
+
+  const obBirth = document.getElementById("ob-birth");
+  const obAge = document.getElementById("ob-age");
+
+  obBirth.addEventListener("input", () => {
+    const age = profileAge({ birthYear: Number(obBirth.value) });
+    if (age == null) { obAge.hidden = true; return; }
+    obAge.hidden = false;
+    obAge.textContent = `今年 ${age} 岁`;
+  });
+
+  function finish() {
+    localStorage.setItem(ONBOARDED_KEY, "1");
+    overlay.hidden = true;
+  }
+
+  document.getElementById("onboarding-form").addEventListener("submit", e => {
+    e.preventDefault();
+    const birthYear = Number(obBirth.value) || null;
+    if (profileAge({ birthYear }) == null) {
+      alert("出生年份看起来不对，请检查（如 1950）");
+      return;
+    }
+    saveProfile({
+      name: document.getElementById("ob-name").value.trim() || null,
+      birthYear,
+      height: Number(document.getElementById("ob-height").value) || null,
+    });
+    /* 同步“我的”页表单显示 */
+    const p = loadProfile();
+    document.getElementById("p-name").value = p.name || "";
+    document.getElementById("p-birth").value = p.birthYear || "";
+    document.getElementById("p-height").value = p.height || "";
+    document.getElementById("p-birth").dispatchEvent(new Event("input"));
+    finish();
+  });
+
+  document.getElementById("ob-skip").addEventListener("click", finish);
+})();
+
 function parseCsvLine(line) {
   const out = [];
   let cur = "", inQ = false;

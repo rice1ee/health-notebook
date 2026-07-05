@@ -242,6 +242,31 @@
   <p>数据只保存在本机，不会上传。血压分级参考《中国高血压防治指南》，仅供参考，请遵医嘱。</p>
 </footer>
 
+<!-- ============ 首次使用引导（有个人信息后不再显示） ============ -->
+<div id="onboarding" class="onboarding no-print" hidden>
+  <div class="onboarding-card">
+    <h1>🩺 欢迎使用健康记录本</h1>
+    <p class="onboarding-sub">先花半分钟填一下基本信息，血压等指标就能按您的年龄给出合适的评判。</p>
+    <form id="onboarding-form" autocomplete="off">
+      <div class="field">
+        <label for="ob-birth">出生年份（必填）</label>
+        <input type="number" id="ob-birth" min="1900" max="2026" inputmode="numeric" placeholder="如 1950" required>
+        <p id="ob-age" class="profile-age" hidden></p>
+      </div>
+      <div class="field">
+        <label for="ob-height">身高（厘米，可不填）</label>
+        <input type="number" id="ob-height" min="80" max="230" inputmode="numeric" placeholder="如 165">
+      </div>
+      <div class="field">
+        <label for="ob-name">姓名（可不填，打印表格时用）</label>
+        <input type="text" id="ob-name" maxlength="20" placeholder="如：王秀兰">
+      </div>
+      <button type="submit" class="big-btn">✅ 开始使用</button>
+      <button type="button" class="skip-btn" id="ob-skip">先跳过，以后在"我的"页填</button>
+    </form>
+  </div>
+</div>
+
 <!-- ============ 打印专用区域（平时隐藏） ============ -->
 <div id="print-area" class="print-only"></div>
 

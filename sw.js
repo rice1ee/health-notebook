@@ -1,7 +1,7 @@
 /* Service Worker：缓存应用外壳，实现离线使用 */
 "use strict";
 
-const CACHE_NAME = "health-app-v3";
+const CACHE_NAME = "health-app-v4";
 const APP_SHELL = [
   "./index.html",
   "./css/style.css",

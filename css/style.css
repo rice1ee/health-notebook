@@ -234,6 +234,39 @@ input:focus, select:focus { outline: 3px solid #e8b98f; border-color: var(--bran
 .standard-list { margin: 0 0 10px; padding-left: 22px; font-size: 18px; color: #4a3a2a; }
 .standard-list li { margin-bottom: 8px; }
 
+/* ============ 首次使用引导 ============ */
+.onboarding {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--paper);
+  overflow-y: auto;
+  padding: 24px 16px;
+}
+.onboarding-card {
+  max-width: 520px;
+  margin: 0 auto;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px;
+}
+.onboarding-card h1 { margin: 0 0 8px; font-size: 28px; color: var(--brand-dark); text-align: center; }
+.onboarding-sub { margin: 0 0 18px; color: #6a5a48; font-size: 19px; text-align: center; }
+.skip-btn {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 10px;
+  border: none;
+  background: none;
+  color: #8a7a6a;
+  font-size: 18px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.skip-btn:hover { color: var(--brand-dark); }
+
 /* ============ 页脚 ============ */
 .app-footer { text-align: center; color: #9a8a78; font-size: 16px; padding: 12px 20px 30px; }
 
