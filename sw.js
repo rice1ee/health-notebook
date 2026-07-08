@@ -1,12 +1,13 @@
 /* Service Worker：缓存应用外壳，实现离线使用 */
 "use strict";
 
-const CACHE_NAME = "health-app-v4";
+const CACHE_NAME = "health-app-v5";
 const APP_SHELL = [
   "./index.html",
   "./css/style.css",
   "./js/app.js",
   "./js/reminder.js",
+  "./js/sync.js",
   "./manifest.webmanifest",
   "./icon-192.png",
   "./icon-512.png",
@@ -40,6 +41,8 @@ self.addEventListener("notificationclick", event => {
 /* 缓存优先，取不到再走网络；网络成功则更新缓存 */
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
+  /* 同步接口永远走网络，不缓存 */
+  if (new URL(event.request.url).pathname.startsWith("/api/")) return;
   event.respondWith(
     caches.match(event.request).then(cached => {
       const fetched = fetch(event.request).then(resp => {

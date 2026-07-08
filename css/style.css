@@ -188,6 +188,41 @@ input:focus, select:focus { outline: 3px solid #e8b98f; border-color: var(--bran
 .print-option-card h2 { margin: 0 0 6px; font-size: 24px; color: var(--brand-dark); }
 .print-option-card p { margin: 0 0 12px; color: #6a5a48; font-size: 19px; }
 
+/* ============ 家庭同步 ============ */
+.family-code { display: flex; gap: 8px; justify-content: center; margin: 12px 0; }
+.family-code b {
+  width: 46px; height: 60px;
+  display: grid; place-items: center;
+  background: #fbeee6;
+  border: 2px solid var(--brand);
+  border-radius: 12px;
+  font-size: 32px; color: var(--brand-dark);
+}
+.sync-status { text-align: center; font-size: 18px; font-weight: 700; margin: 6px 0 10px; }
+.sync-ok { color: var(--ok); }
+.sync-warn { color: var(--warn); }
+.fam-device {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 18px; padding: 8px 4px;
+  border-bottom: 1px dashed var(--line);
+}
+.fam-device:last-child { border-bottom: none; }
+.fam-device small { margin-left: auto; color: #9a8a78; font-size: 15px; }
+
+/* ============ 体重变化卡片 ============ */
+.w-now { text-align: center; padding: 8px 0 0; }
+.w-now .num { font-size: 56px; font-weight: 800; color: var(--brand-dark); line-height: 1.1; }
+.w-now .unit { font-size: 20px; color: #8a7a68; }
+.w-delta { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 10px 0 6px; }
+.pill { font-size: 17px; font-weight: 700; padding: 6px 14px; border-radius: 999px; }
+.pill.down { background: #e8f5e9; color: var(--ok); }
+.pill.flat { background: #f0ece4; color: #7a6a58; }
+.pill.bmi  { background: #fff3e0; color: var(--warn); }
+.w-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin-top: 12px; }
+.w-stat { background: #fbf7f0; border: 1px solid var(--line); border-radius: 12px; padding: 10px 4px; text-align: center; }
+.w-stat b { display: block; font-size: 22px; color: var(--brand-dark); }
+.w-stat span { font-size: 15px; color: #8a7a68; }
+
 /* ============ 提醒 ============ */
 .reminder-banner {
   width: min(860px, calc(100% - 32px));

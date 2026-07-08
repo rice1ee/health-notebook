@@ -4,13 +4,19 @@
 const STORE_KEY = "health_records_v1";
 
 /* ============ 数据存取 ============ */
-function loadRecords() {
+/* 全部记录（含已删除墓碑，同步用） */
+function loadAllRecords() {
   try {
     return JSON.parse(localStorage.getItem(STORE_KEY)) || [];
   } catch (e) {
     console.error("读取数据失败", e);
     return [];
   }
+}
+
+/* 有效记录（界面展示用） */
+function loadRecords() {
+  return loadAllRecords().filter(r => !r.deleted);
 }
 
 function saveRecords(records) {
@@ -211,9 +217,10 @@ form.addEventListener("submit", e => {
     glucoseType: glucose ? document.getElementById("f-glucose-type").value : null,
     weight,
     note: document.getElementById("f-note").value.trim() || null,
+    updatedAt: Date.now(),
   };
 
-  const records = loadRecords();
+  const records = loadAllRecords();
   records.push(rec);
   saveRecords(records);
 
@@ -273,8 +280,13 @@ function renderHistory() {
   list.querySelectorAll(".del-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       if (!confirm("确定删除这条记录吗？")) return;
-      saveRecords(loadRecords().filter(r => r.id !== btn.dataset.id));
+      /* 打墓碑标记而非物理删除，保证多设备同步时删除能传播 */
+      const all = loadAllRecords();
+      const target = all.find(r => r.id === btn.dataset.id);
+      if (target) { target.deleted = true; target.updatedAt = Date.now(); }
+      saveRecords(all);
       renderHistory();
+      window.dispatchEvent(new CustomEvent("record-saved"));
     });
   });
 }
@@ -309,10 +321,66 @@ function renderCharts() {
     { value: 90, color: "#1565c0" },
   ], "还没有血压记录");
 
-  const wData = records.filter(r => r.weight);
+  renderWeightCard(records.filter(r => r.weight));
+}
+
+/* ============ 体重变化卡片（大数字 + 周月变化 + BMI + 目标线 + 统计） ============ */
+function renderWeightCard(wData) {
+  const summary = document.getElementById("weight-summary");
+  const stats = document.getElementById("weight-stats");
+  const profile = loadProfile();
+
+  if (wData.length === 0) {
+    summary.innerHTML = "";
+    stats.innerHTML = "";
+    document.getElementById("weight-chart").innerHTML = '<p class="empty-tip">还没有体重记录</p>';
+    return;
+  }
+
+  const latest = wData[wData.length - 1];
+
+  /* 找 offsetDays 天前（或更早）最近一条的体重 */
+  function weightBefore(offsetDays) {
+    const cutoff = new Date(latest.date);
+    cutoff.setDate(cutoff.getDate() - offsetDays);
+    const cutStr = fmtDate(cutoff);
+    for (let i = wData.length - 1; i >= 0; i--) {
+      if (wData[i].date <= cutStr) return wData[i].weight;
+    }
+    return null;
+  }
+
+  function deltaPill(label, base) {
+    if (base == null) return "";
+    const d = latest.weight - base;
+    const cls = d < -0.05 ? "down" : "flat";
+    const sign = d > 0.05 ? "↑ " : d < -0.05 ? "↓ " : "";
+    return `<span class="pill ${cls}">${label} ${sign}${Math.abs(d).toFixed(1)}</span>`;
+  }
+
+  let bmiPill = "";
+  const bm = bmiLevel(latest.weight, Number(profile.height) || null);
+  if (bm) {
+    const bmi = latest.weight / Math.pow(profile.height / 100, 2);
+    bmiPill = `<span class="pill ${bm.cls === "ok" ? "down" : "bmi"}">BMI ${bmi.toFixed(1)} ${bm.short.replace("体重", "")}</span>`;
+  }
+
+  summary.innerHTML = `
+    <div class="w-now"><span class="num">${latest.weight}</span> <span class="unit">公斤</span></div>
+    <div class="w-delta">${deltaPill("较上周", weightBefore(7))}${deltaPill("较上月", weightBefore(30))}${bmiPill}</div>`;
+
+  const target = Number(profile.targetWeight) || null;
   drawLineChart("weight-chart", wData, [
     { key: "weight", color: "#6a4fa3", label: "体重" },
-  ], [], "还没有体重记录");
+  ], target ? [{ value: target, color: "#2e7d32" }] : [], "还没有体重记录");
+
+  const vals = wData.map(r => r.weight);
+  const change = latest.weight - wData[0].weight;
+  stats.innerHTML = `
+    <div class="w-stat"><b>${Math.max(...vals).toFixed(1)}</b><span>期间最高</span></div>
+    <div class="w-stat"><b>${Math.min(...vals).toFixed(1)}</b><span>期间最低</span></div>
+    <div class="w-stat"><b>${change > 0 ? "+" : ""}${change.toFixed(1)}</b><span>期间变化</span></div>
+    ${target ? `<div class="w-stat"><b>${target}</b><span>目标体重</span></div>` : ""}`;
 }
 document.getElementById("chart-range").addEventListener("change", renderCharts);
 
@@ -475,7 +543,7 @@ document.getElementById("import-file").addEventListener("change", e => {
   reader.onload = () => {
     try {
       const lines = reader.result.replace(/^﻿/, "").split(/\r?\n/).filter(l => l.trim());
-      const records = loadRecords();
+      const records = loadAllRecords();
       let added = 0;
       lines.slice(1).forEach(line => {
         const c = parseCsvLine(line);
@@ -486,10 +554,12 @@ document.getElementById("import-file").addEventListener("change", e => {
           sys: Number(c[2]) || null, dia: Number(c[3]) || null, pulse: Number(c[4]) || null,
           glucose: Number(c[5]) || null, glucoseType: c[6] || null,
           weight: Number(c[7]) || null, note: c[8] || null,
+          updatedAt: Date.now(),
         });
         added++;
       });
       saveRecords(records);
+      window.dispatchEvent(new CustomEvent("record-saved"));
       alert(`导入完成，共添加 ${added} 条记录。`);
     } catch (err) {
       console.error("导入失败", err);
@@ -511,6 +581,7 @@ document.getElementById("import-file").addEventListener("change", e => {
   if (profile.name) pName.value = profile.name;
   if (profile.birthYear) pBirth.value = profile.birthYear;
   if (profile.height) pHeight.value = profile.height;
+  if (profile.targetWeight) document.getElementById("p-target-weight").value = profile.targetWeight;
 
   function updateAgeTip() {
     const age = profileAge({ birthYear: Number(pBirth.value) });
@@ -532,6 +603,8 @@ document.getElementById("import-file").addEventListener("change", e => {
       name: pName.value.trim() || null,
       birthYear,
       height: Number(pHeight.value) || null,
+      targetWeight: Number(document.getElementById("p-target-weight").value) || null,
+      updatedAt: Date.now(),
     });
     updateBpHint();
     const msg = document.getElementById("profile-msg");
@@ -576,6 +649,7 @@ const ONBOARDED_KEY = "health_onboarded_v1";
       name: document.getElementById("ob-name").value.trim() || null,
       birthYear,
       height: Number(document.getElementById("ob-height").value) || null,
+      updatedAt: Date.now(),
     });
     /* 同步“我的”页表单显示 */
     const p = loadProfile();
